@@ -5,6 +5,8 @@ import webbrowser
 import json
 import psutil
 import time
+from PIL import ImageGrab
+
 
 server = Flask(__name__)
 
@@ -16,7 +18,9 @@ class Tools:
             "get_ram": self.get_ram,
             "get_disk_io_counters":self.get_disk_io_counters,
             "get_disk_usage":self.get_disk_usage,
-            "get_network_usage":self.get_network_usage
+            "get_network_usage":self.get_network_usage,
+            "open_url": self.open_url,
+            "take_screenshot": self.take_screenshot
         }
     
     def open_chrome(self):
@@ -120,15 +124,47 @@ class Tools:
                 "status":404,
                 "response":f"An error has occured during get of network usage: {error}",
             }
+        
+    def open_url(self,url):
+        try:
+          webbrowser.open(url)
+          return {
+                "status": 200,
+                "response":f"The url:{url} has oppended succesfull."
+            }
+        
+        except Exception as error:
+            return {
+                "status":404,
+                "response":f"An error has occured during opening of url:{url} error:{error}",
+            }
 
+    def take_screenshot(self):
+        try:
+            screenshot = ImageGrab.grab()
+            screenshot.save("screenshot.png")
+
+            return {
+                "status": 200,
+                "response":f"The screenshot has succesfully taken and saved as screenshot.png"
+            }
+        
+        except Exception as error:
+            return {
+                "status":404,
+                "response":f"An error has occured during taken of screenshot:{error}",
+            }
     
-    def execute(self,tool):
+    def execute(self,tool,args=None):
         if tool not in self.tools:
             return {
                 "status": 404,
                 "error": f"Unknown tool: {tool}"
             }
-        return self.tools[tool]()
+        if args:
+            return self.tools[tool](**args)
+        else:
+            return self.tools[tool]()
 
 tools = Tools()
 
@@ -139,19 +175,35 @@ class AI:
         You are NexusAI, a local desktop assistant.
         Be concise.
 
-        Available tools:
+        Available tools(Without Args):
         - open_chrome
         - get_cpu
         - get_ram
         - get_disk_io_counters
         - get_disk_usage
         - get_network_usage
+        - take_screenshot
+
+        Available tools (With Args):
+        - open_url (args: url)
 
         If a tool is needed answer ONLY in JSON:
 
         {
             "tool": "tool_name"
         }
+
+        If a tool needs extra arguments answer ONLY in JSON:
+
+        {
+            "tool": "tool_name",
+            "args": {
+                "arg_name":"arg"
+            }
+        }
+
+        Else response normally.
+        Dont forget to be concise.
         """
 
     def ask(self, prompt):
@@ -200,7 +252,8 @@ def ai_endpoint():
             data = json.loads(response)
 
             if "tool" in data:
-                result = tools.execute(data["tool"])
+                args = data.get("args", {})
+                result = tools.execute(data["tool"], args)
 
                 return jsonify({
                     "type": "tool_result",
