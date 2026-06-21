@@ -3,33 +3,129 @@ from ollama import chat
 from ollama import ChatResponse
 import webbrowser
 import json
+import psutil
+import time
 
 server = Flask(__name__)
 
 class Tools:
     def __init__(self):
         self.tools = {
-            "open_chrome": self.open_chrome
+            "open_chrome": self.open_chrome,
+            "get_cpu": self.get_cpu,
+            "get_ram": self.get_ram,
+            "get_disk_io_counters":self.get_disk_io_counters,
+            "get_disk_usage":self.get_disk_usage,
+            "get_network_usage":self.get_network_usage
         }
     
     def open_chrome(self):
         try:
          webbrowser.open("https://google.com")
          return {
-             "code":200,
+             "status":200,
              "response":"Chrome opened successfully"
          }
         except Exception as error:
             return {
-             "code":200,
-             "response":"Chrome opened successfully",
-             "error":error
+             "status":404,
+             "response":f"Chrome has not opened successfully beacuse of an error: {error}",
+            }
+    
+    def get_cpu(self):
+        try:
+            cpu = psutil.cpu_percent(interval=0.5)
+            return {
+             "status":200,
+             "response":f"Computer's CPU usage is {cpu}%"
+            }
+        except Exception as error:
+            return {
+             "status":404,
+             "response":f"An error has occured during get of CPU usage: {error}",
+            }
+    
+    def get_ram(self):
+        try:
+            ram = psutil.virtual_memory().percent
+            return {
+                "status": 200,
+                "response":f"Computer's RAM usage is {ram}%"
+            }
+        except Exception as error:
+            return {
+                "status":404,
+                "response":f"An error has occured during get of RAM usage: {error}",
+            }
+    
+    def get_disk_io_counters(self):
+        try:
+            disk_write1 = psutil.disk_io_counters().write_bytes
+            disk_read1 = psutil.disk_io_counters().read_bytes
+
+            time.sleep(1)
+
+            disk_write2 = psutil.disk_io_counters().write_bytes
+            disk_read2 = psutil.disk_io_counters().read_bytes
+
+            write_per_sec = disk_write2 - disk_write1
+            read_per_sec = disk_read2 - disk_read1
+            
+            return {
+                "status": 200,
+                "response":f"Computer's disk io counters is Write:{write_per_sec} per second ,Read:{read_per_sec} per second."
             }
         
+        except Exception as error:
+            return {
+                "status":404,
+                "response":f"An error has occured during get of disk io counters: {error}",
+            }
+    
+
+    def get_disk_usage(self):
+        try:
+            disk_usage = psutil.disk_usage("C:/").percent
+            return {
+                "status": 200,
+                "response":f"Computer's disk usage is {disk_usage}%"
+            }
+        
+        except Exception as error:
+            return {
+                "status":404,
+                "response":f"An error has occured during get of disk usage: {error}",
+            }
+
+    def get_network_usage(self):
+        try:
+            bytes_sent1 = psutil.net_io_counters().bytes_sent
+            bytes_recv1 = psutil.net_io_counters().bytes_recv
+
+            time.sleep(1)
+
+            bytes_sent2 = psutil.net_io_counters().bytes_sent
+            bytes_recv2 = psutil.net_io_counters().bytes_recv
+
+            bytes_sent_per_sec = bytes_sent2 - bytes_sent1
+            bytes_recv_per_sec = bytes_recv2 - bytes_recv1
+
+            return {
+                "status": 200,
+                "response":f"Computer's network io counters is Sent:{bytes_sent_per_sec} per second , Recv:{bytes_recv_per_sec} per second."
+            }
+        
+        except Exception as error:
+            return {
+                "status":404,
+                "response":f"An error has occured during get of network usage: {error}",
+            }
+
+    
     def execute(self,tool):
         if tool not in self.tools:
             return {
-                "code": 404,
+                "status": 404,
                 "error": f"Unknown tool: {tool}"
             }
         return self.tools[tool]()
@@ -46,6 +142,10 @@ class AI:
         Available tools:
         - open_chrome
         - get_cpu
+        - get_ram
+        - get_disk_io_counters
+        - get_disk_usage
+        - get_network_usage
 
         If a tool is needed answer ONLY in JSON:
 
