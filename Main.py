@@ -13,6 +13,8 @@ import datetime
 
 server = Flask(__name__)
 
+
+
 class Tools:
     def __init__(self):
         self.tools = {
@@ -29,7 +31,10 @@ class Tools:
             "get_network_usage":self.get_network_usage,
             "open_url": self.open_url,
             "take_screenshot": self.take_screenshot,
-            "list_files": self.list_files
+            "list_files": self.list_files,
+            "shutdown_pc":self.shutdown_pc,
+            "restart_pc":self.restart_pc,
+            "log_out":self.log_out
         }
     
     def open_chrome(self):
@@ -332,6 +337,9 @@ class AI:
         - get_disk_usage
         - get_network_usage
         - take_screenshot
+        - shutdown_pc
+        - restart_pc
+        - log_out
 
 
         Available tools (With Args):
@@ -353,25 +361,55 @@ class AI:
             }
         }
 
+        When the execution of the tool has finished you will get the results wich you must tell it in the user
+
         Else response normally.
-        Dont forget to be concise.
+        Dont forget to be as concise as you can.
         """
+        self.history = [
+
+        ]
+
+        self.MAX_HISTORY = 20
+
+
+    def add_tool_result(self, result):
+        self.history.append({
+            "role": "system",
+            "content": f"Tool result: {result}"
+        })
 
     def ask(self, prompt):
+        
+
+        self.history.append({
+            "role": "user",
+            "content": prompt
+        })
+
+
+        if len(self.history) > self.MAX_HISTORY:
+            self.history = self.history[-self.MAX_HISTORY:]
+
+        messages = [
+        {
+            "role": "system",
+            "content": self.system_prompt
+        }
+        ]
+
+        messages.extend(self.history)
 
         response = chat(
             model="qwen3:8b",
-            messages=[
-                {
-                    "role": "system",
-                    "content": self.system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
+            messages=messages
         )
+
+        self.history.append({
+            "role": "assistant",
+            "content": response["message"]["content"]
+        })
+
 
         return response["message"]["content"]
 
@@ -404,11 +442,18 @@ def ai_endpoint():
 
             if "tool" in data:
                 args = data.get("args", {})
+
                 result = tools.execute(data["tool"], args)
 
+                model.add_tool_result(result["response"])
+
+                response = model.ask(
+                    "Explain the tool result to the user."
+                )
+
                 return jsonify({
-                    "type": "tool_result",
-                    "result": result
+                    "type": "message",
+                    "content": response
                 })
 
         except json.JSONDecodeError:
