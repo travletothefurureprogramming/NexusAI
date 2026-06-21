@@ -28,7 +28,8 @@ class Tools:
             "get_disk_usage":self.get_disk_usage,
             "get_network_usage":self.get_network_usage,
             "open_url": self.open_url,
-            "take_screenshot": self.take_screenshot
+            "take_screenshot": self.take_screenshot,
+            "list_files": self.list_files
         }
     
     def open_chrome(self):
@@ -231,7 +232,72 @@ class Tools:
                 "response":f"An error has occured during taken of screenshot:{error}",
             }
         
+    def shutdown_pc(self):
+        try:
+            subprocess.run(["shutdown", "/s", "/t", "0"])
+
+            return {
+                "status": 200,
+                "response": "Computer is shutting down."
+            }
+
+        except Exception as error:
+            return {
+                "status": 404,
+                "response": f"Failed to shutdown computer: {error}"
+            }
     
+    def restart_pc(self):
+        try:
+            subprocess.run(["shutdown", "/r", "/t", "0"])
+
+            return {
+                "status": 200,
+                "response": "Computer is restarting."
+            }
+
+        except Exception as error:
+            return {
+                "status": 404,
+                "response": f"Failed to restart computer: {error}"
+            }
+    
+    def log_out(self):
+        try:
+            subprocess.run(["shutdown", "/l"])
+
+
+            return {
+                "status": 200,
+                "response": "User is loged out."
+            }
+
+        except Exception as error:
+            return {
+                "status": 404,
+                "response": f"Failed to log out user: {error}"
+            }
+    
+    def list_files(self, path):
+      if os.path.exists(path):
+       try:
+        
+        files = os.listdir(path)
+
+        return {
+            "status": 200,
+            "response": f"Here is the files of {path}.\n{files}"
+        }
+       except Exception as error:
+           return {
+               "status":404,
+               "response": f"Failed to list the files of {path} beacuse of an error:{error}"
+           }
+      else:
+        return {
+            "status": 404,
+            "response": f"This path dont exist please select a valid one."
+        }
     
     def execute(self,tool,args=None):
         if tool not in self.tools:
@@ -270,6 +336,7 @@ class AI:
 
         Available tools (With Args):
         - open_url (args: url)
+        - list_files (args: path)
 
         If a tool is needed answer ONLY in JSON:
 
