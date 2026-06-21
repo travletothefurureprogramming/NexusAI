@@ -1,11 +1,14 @@
 from flask import Flask, render_template, request, jsonify
 from ollama import chat
 from ollama import ChatResponse
+from PIL import ImageGrab
 import webbrowser
 import json
 import psutil
 import time
-from PIL import ImageGrab
+import os
+import subprocess
+import datetime
 
 
 server = Flask(__name__)
@@ -14,6 +17,11 @@ class Tools:
     def __init__(self):
         self.tools = {
             "open_chrome": self.open_chrome,
+            "open_calculator":self.open_calculator,
+            "open_file_explorer":self.open_explorer,
+            "open_notepad":self.open_notepad,
+            "open_task_manager":self.open_task_manager,
+            "open_cmd":self.open_cmd,
             "get_cpu": self.get_cpu,
             "get_ram": self.get_ram,
             "get_disk_io_counters":self.get_disk_io_counters,
@@ -35,7 +43,74 @@ class Tools:
              "status":404,
              "response":f"Chrome has not opened successfully beacuse of an error: {error}",
             }
+        
+    def open_calculator(self):
+        try:
+         subprocess.Popen("calc.exe")
+         return {
+             "status":200,
+             "response":"Calculator opened successfully"
+         }
+        except Exception as error:
+            return {
+             "status":404,
+             "response":f"Calculator has not opened successfully beacuse of an error: {error}",
+            }
     
+    def open_notepad(self):
+        try:
+           subprocess.Popen("notepad.exe")
+           return {
+             "status":200,
+             "response":"Notepad opened successfully"
+           }
+        except Exception as error:
+            return {
+             "status":404,
+             "response":f"Notepad has not opened successfully beacuse of an error: {error}",
+            }
+        
+    def open_explorer(self):
+        try:
+           subprocess.Popen("explorer.exe")
+           return {
+             "status":200,
+             "response":"File Explorer opened successfully"
+           }
+        except Exception as error:
+            return {
+             "status":404,
+             "response":f"File Explorer has not opened successfully beacuse of an error: {error}",
+            }
+        
+    def open_task_manager(self):
+        try:
+            subprocess.Popen("taskmgr.exe")           
+            return {
+             "status":200,
+             "response":"Task Manager opened successfully"
+           }
+        except Exception as error:
+            return {
+             "status":404,
+             "response":f"Task Manager has not opened successfully beacuse of an error: {error}",
+            }
+    
+    def open_cmd(self):
+        try:
+            subprocess.Popen("cmd.exe")           
+            return {
+             "status":200,
+             "response":"Terminal opened successfully"
+           }
+        except Exception as error:
+            return {
+             "status":404,
+             "response":f"Terminal has not opened successfully beacuse of an error: {error}",
+            }
+    
+    
+        
     def get_cpu(self):
         try:
             cpu = psutil.cpu_percent(interval=0.5)
@@ -89,7 +164,7 @@ class Tools:
 
     def get_disk_usage(self):
         try:
-            disk_usage = psutil.disk_usage("C:/").percent
+            disk_usage = psutil.disk_usage(os.path.abspath(os.sep)).percent
             return {
                 "status": 200,
                 "response":f"Computer's disk usage is {disk_usage}%"
@@ -142,7 +217,8 @@ class Tools:
     def take_screenshot(self):
         try:
             screenshot = ImageGrab.grab()
-            screenshot.save("screenshot.png")
+            timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+            screenshot.save(f"screenshot_{timestamp}.png")
 
             return {
                 "status": 200,
@@ -154,6 +230,8 @@ class Tools:
                 "status":404,
                 "response":f"An error has occured during taken of screenshot:{error}",
             }
+        
+    
     
     def execute(self,tool,args=None):
         if tool not in self.tools:
@@ -175,14 +253,20 @@ class AI:
         You are NexusAI, a local desktop assistant.
         Be concise.
 
-        Available tools(Without Args):
+        Available tools (Without Args):
         - open_chrome
+        - open_calculator
+        - open_notepad
+        - open_file_explorer
+        - open_task_manager
+        - open_cmd
         - get_cpu
         - get_ram
         - get_disk_io_counters
         - get_disk_usage
         - get_network_usage
         - take_screenshot
+
 
         Available tools (With Args):
         - open_url (args: url)
