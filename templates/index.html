@@ -6,6 +6,36 @@
     <title>NexusAI</title>
 </head>
 <body>
-    
+    <input type="text" id="prompt">
+    <button onclick="sendtoAI()">Send to AI</button>
+    <p id="message"></p>
+
+    <script>
+    async function sendtoAI() {
+    const container = document.getElementById('prompt');
+    const message = document.getElementById('message');
+    const text = container.value;
+
+    const host = window.location.origin; // καλύτερο από host
+
+    try {
+        const response = await fetch(host + '/api/ai', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: text })
+        });
+
+        const data = await response.json(); // ή .text() αν δεν είναι JSON
+
+        message.textContent = data.reply || JSON.stringify(data);
+
+    } catch (err) {
+        console.error(err);
+        message.textContent = "Error connecting to server";
+    }
+}
+</script>
 </body>
 </html>

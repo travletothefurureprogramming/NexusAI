@@ -9,7 +9,9 @@ import time
 import os
 import subprocess
 import datetime
-
+import requests
+from urllib.parse import quote
+from ddgs import DDGS
 
 server = Flask(__name__)
 
@@ -34,7 +36,8 @@ class Tools:
             "list_files": self.list_files,
             "shutdown_pc":self.shutdown_pc,
             "restart_pc":self.restart_pc,
-            "log_out":self.log_out
+            "log_out":self.log_out,
+            "search_web":self.search_web
         }
     
     def open_chrome(self):
@@ -104,11 +107,11 @@ class Tools:
     
     def open_cmd(self):
         try:
-            subprocess.Popen("cmd.exe")           
+            subprocess.Popen("cmd.exe", creationflags=subprocess.CREATE_NEW_CONSOLE)            
             return {
              "status":200,
              "response":"Terminal opened successfully"
-           }
+            }
         except Exception as error:
             return {
              "status":404,
@@ -303,6 +306,25 @@ class Tools:
             "status": 404,
             "response": f"This path dont exist please select a valid one."
         }
+      
+    def search_web(self, query=None):
+        try:
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=1))
+                if results:
+                    return {
+                        "status": 200,
+                        "response": results[0]['body']
+                    }
+                return {
+                    "status": 404,
+                    "response": "Information has not finded"
+                }
+        except Exception as e:
+            return {
+                "status": 500,
+                "response": f"Error during the search: {str(e)}"
+            }
     
     def execute(self,tool,args=None):
         if tool not in self.tools:
@@ -346,6 +368,10 @@ class AI:
         - open_url (args: url)
         - list_files (args: path)
 
+        Available tools (For You With Args):
+        - search_web (args: query of what you want to search): If you cant awnser to something you can search it using this tool in the web
+
+
         If a tool is needed answer ONLY in JSON:
 
         {
@@ -370,7 +396,7 @@ class AI:
 
         ]
 
-        self.MAX_HISTORY = 20
+        self.MAX_HISTORY = 8
 
 
     def add_tool_result(self, result):
@@ -401,8 +427,12 @@ class AI:
         messages.extend(self.history)
 
         response = chat(
-            model="qwen3:8b",
-            messages=messages
+            model="qwen2.5:3b-instruct",
+            messages=messages,
+            options={
+                "temperature": 0.2,
+                "num_ctx": 1024
+            }
         )
 
         self.history.append({
@@ -421,7 +451,7 @@ def web_site():
 
 @server.route("/api/ai", methods=["POST", "GET"])
 def ai_endpoint():
-    if request.method == "GET":
+ if request.method == "GET":
         return jsonify(
         {
          "status": 405,
@@ -432,33 +462,43 @@ def ai_endpoint():
         }
         )
     
-    else:
-        message = request.json["message"]
+ else:
+    message = request.json["message"]
 
-        response = model.ask(message)
+    print("\n====================")
+    print("📩 USER MESSAGE:", message)
 
-        try:
-            data = json.loads(response)
+    response = model.ask(message)
 
-            if "tool" in data:
-                args = data.get("args", {})
+    print("🤖 RAW MODEL RESPONSE:", response)
 
-                result = tools.execute(data["tool"], args)
+    try:
+        data = json.loads(response)
+        print("🧠 PARSED JSON:", data)
 
-                model.add_tool_result(result["response"])
+        if "tool" in data:
+            print("🔧 TOOL REQUEST:", data["tool"])
+            args = data.get("args", {})
+            print("📦 TOOL ARGS:", args)
 
-                response = model.ask(
-                    "Explain the tool result to the user."
-                )
+            result = tools.execute(data["tool"], args)
+            print("⚙️ TOOL RESULT:", result)
 
-                return jsonify({
-                    "type": "message",
-                    "content": response
-                })
+            result_text = result.get("response", str(result))
+            model.add_tool_result(result_text)
 
-        except json.JSONDecodeError:
-            return jsonify({
-                "type": "message",
-                "content": response
-            })
+            final_response = model.ask(f"The user originally asked: '{message}'. The tool returned: '{result_text}'. Please provide a friendly, natural language answer based on this information. Do NOT use JSON.")
+            
+            print("✨ FINAL RESPONSE:", final_response)
+            return jsonify({"reply": final_response})
+
+    except json.JSONDecodeError as e:
+        print("❌ JSON ERROR:", e)
+
+        return jsonify({
+            "reply": response
+        })
+     
+if __name__ == "__main__":
+    server.run(host="0.0.0.0",port="5000")
 
