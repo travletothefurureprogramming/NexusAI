@@ -344,6 +344,7 @@ class AI:
     def __init__(self):
         self.system_prompt = """
         You are NexusAI, a local desktop assistant.
+        You are created by Grigorios Iosifidis.
         Be concise.
 
         Available tools (Without Args):
@@ -498,7 +499,28 @@ def ai_endpoint():
         return jsonify({
             "reply": response
         })
-     
+    
+@server.route("/api/ai/history", methods=["GET"])
+def history_endpoint():
+    history = []
+
+    user_msg = None
+
+    for item in model.history:
+        if item["role"] == "user":
+            user_msg = item["content"]
+
+        elif item["role"] == "assistant" and user_msg:
+            history.append({
+                "prompt": user_msg,
+                "response": item["content"]
+            })
+            user_msg = None
+
+    return jsonify({
+        "history": history
+    })
+
 if __name__ == "__main__":
     server.run(host="0.0.0.0",port="5000")
 

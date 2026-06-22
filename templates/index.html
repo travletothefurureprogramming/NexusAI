@@ -1,41 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusAI</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexusAI</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f4f7f6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.chat-container {
+    width: 420px;
+    height: 600px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.header {
+    background: #5c67f2;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.chat-box {
+    flex: 1;
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.msg {
+    padding: 10px 14px;
+    border-radius: 15px;
+    max-width: 75%;
+    word-wrap: break-word;
+}
+
+.user {
+    background: #5c67f2;
+    color: white;
+    align-self: flex-end;
+}
+
+.ai {
+    background: #e5e5e5;
+    align-self: flex-start;
+}
+
+.input-area {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #ddd;
+}
+
+input {
+    flex: 1;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    outline: none;
+}
+
+button {
+    margin-left: 10px;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 20px;
+    background: #5c67f2;
+    color: white;
+    cursor: pointer;
+}
+
+button:disabled {
+    background: gray;
+}
+</style>
 </head>
+
 <body>
-    <input type="text" id="prompt">
-    <button onclick="sendtoAI()">Send to AI</button>
-    <p id="message"></p>
 
-    <script>
-    async function sendtoAI() {
-    const container = document.getElementById('prompt');
-    const message = document.getElementById('message');
-    const text = container.value;
+<div class="chat-container">
+    <div class="header">NexusAI</div>
 
-    const host = window.location.origin; // καλύτερο από host
+    <div id="chat" class="chat-box"></div>
+
+    <div class="input-area">
+        <input id="prompt" placeholder="Write Something..." />
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+const chat = document.getElementById("chat");
+const input = document.getElementById("prompt");
+const btn = document.getElementById("sendBtn");
+const host = window.location.origin;
+
+input.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMessage();
+});
+
+function addMessage(text, type) {
+    const div = document.createElement("div");
+    div.classList.add("msg", type);
+    div.textContent = text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
+
+    addMessage(text, "user");
+    input.value = "";
+
+    btn.disabled = true;
+    btn.textContent = "Thinking...";
 
     try {
-        const response = await fetch(host + '/api/ai', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+        const res = await fetch(host + "/api/ai", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ message: text })
         });
 
-        const data = await response.json(); // ή .text() αν δεν είναι JSON
+        const data = await res.json();
 
-        message.textContent = data.reply || JSON.stringify(data);
+        addMessage(data.reply || "No response", "ai");
 
     } catch (err) {
-        console.error(err);
-        message.textContent = "Error connecting to server";
+        addMessage("Error connecting to server", "ai");
     }
+
+    btn.disabled = false;
+    btn.textContent = "Send";
 }
 </script>
+
 </body>
 </html>
