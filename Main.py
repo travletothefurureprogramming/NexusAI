@@ -12,9 +12,10 @@ import datetime
 import shutil
 from urllib.parse import quote
 from ddgs import DDGS
+import signal
+import winapps
 
 server = Flask(__name__)
-
 
 
 class Tools:
@@ -31,6 +32,10 @@ class Tools:
             "get_disk_io_counters":self.get_disk_io_counters,
             "get_disk_usage":self.get_disk_usage,
             "get_network_usage":self.get_network_usage,
+            "get_running_processes":self.get_running_processes,
+            "kill_process":self.kill_process,
+            "get_installed_apps":self.get_installed_apps,
+            "get_uptime":self.get_uptime,
             "open_url": self.open_url,
             "take_screenshot": self.take_screenshot,
             "list_files": self.list_files,
@@ -215,6 +220,70 @@ class Tools:
             return {
                 "status":404,
                 "response":f"An error has occured during get of network usage: {error}",
+            }
+    
+    def get_running_processes(self):
+     try:
+      process_list = []
+      for process in psutil.process_iter(['pid', 'name']):
+        try:
+            proc_info = {
+                "pid": process.info['pid'],
+                "name": process.info['name']
+            }
+            process_list.append(proc_info)
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+
+      return {
+        "status": 200,
+        "response": f"Processes running in your computer: {process_list}"
+      }
+     except Exception as error:
+          return {
+                "status":404,
+                "response":f"An error has occured during get of running processes: {error}",
+            }
+    
+    def kill_process(self, pid):
+        try:
+         os.kill(pid, signal.SIGKILL)
+         return {
+             "status":200,
+             "response":f"The process with pid:{pid} has successfully killed"
+         }
+        except Exception as error:
+            return {
+                "status":404,
+                "response":f"An error has occured during kill of running process with pid:{pid} error: {error}",
+            }
+        
+    def get_installed_apps(self):
+       try:
+        apps = []
+        for item in winapps.list_installed():
+            apps.append(item)
+        return {
+            "status":200,
+            "response":f"The installed apps in this computer is {apps}"
+        }
+       except Exception as error:
+           return {
+                "status":404,
+                "response":f"An error has occured during get of installed apps: {error}",
+            }
+       
+    def get_uptime(self):
+       try:
+        up_time = psutil.boot_time()
+        return {
+            "status":200,
+            "response":f"The uptime of the computer is {up_time}"
+        }
+       except Exception as error:
+           return {
+                "status":404,
+                "response":f"An error has occured during get of uptime: {error}",
             }
         
     def open_url(self,url):
@@ -455,6 +524,7 @@ class Tools:
 
 tools = Tools()
 
+
 class AI:
 
     def __init__(self):
@@ -475,6 +545,9 @@ class AI:
         - get_disk_io_counters
         - get_disk_usage
         - get_network_usage
+        - get_running_processes
+        - get_installed_apps
+        - get_uptime
         - take_screenshot
         - shutdown_pc
         - restart_pc
@@ -483,6 +556,7 @@ class AI:
 
         Available tools (With Args):
         - open_url (args: url)
+        - kill_process (args: pid)
         - list_files (args: path)
         - create_file (args: path, content)
         - delete_file (args: path)
