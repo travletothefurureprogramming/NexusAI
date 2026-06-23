@@ -43,6 +43,8 @@ class Tools:
             "restart_pc":self.restart_pc,
             "log_out":self.log_out,
             "search_web":self.search_web,
+            "search_youtube":self.search_youtube,
+            "search_github":self.search_github,
             "create_file":self.create_file,
             "delete_file":self.delete_file,
             "move_file":self.move_file,
@@ -511,6 +513,34 @@ class Tools:
                 "response": f"Error during the search: {str(e)}"
             }
     
+    def search_youtube(self,query):
+        try:
+            webbrowser.open(f"https://www.youtube.com/results?search_query={query}")
+            return {
+                "status":200,
+                "response":f"The query:{query} has succesfully searched on YouTube"
+            }
+        
+        except Exception as error:
+             return {
+                    "status": 404,
+                    "response": f"Error while searching on YouTube:{error}"
+                }
+        
+    def search_github(self,query):
+        try:
+            webbrowser.open(f"https://github.com/search?q={query}&type=repositories")
+            return  {
+                "status":200,
+                "response":f"The query:{query} has succesfully searched on Github"
+            }
+
+        except Exception as error:
+            return {
+                    "status": 404,
+                    "response": f"Error while searching on Github:{error}"
+                }
+    
     def execute(self,tool,args=None):
         if tool not in self.tools:
             return {
@@ -529,10 +559,20 @@ class AI:
 
     def __init__(self):
         self.system_prompt = """
-        You are NexusAI, a local desktop assistant.
-        You are created by Grigorios Iosifidis.
-        Be concise.
+        You are NexusAI, a local desktop assistant created by Grigorios Iosifidis. 
+        Your goal is to provide concise, accurate, and helpful responses.
 
+        OPERATING RULES:
+        1. Always analyze user intent before choosing to use a tool. Only use tools when necessary.
+        2. If the user query does not require a tool, respond with natural text.
+        3. If a tool is required, output ONLY a valid JSON object. No markdown, no conversational filler before or after the JSON.
+        4. When a tool returns output, summarize the findings for the user in a natural, concise tone.
+
+        JSON FORMAT:
+        - No tool arguments: {"tool": "tool_name"}
+        - With arguments: {"tool": "tool_name", "args": {"arg1": "value1", "arg2": "value2"}}
+
+        TOOLS REFERENCE:
         Available tools (Without Args):
         - open_chrome
         - open_calculator
@@ -566,30 +606,47 @@ class AI:
         - write_file (args: path, content)
         - rename_file (args: old_name, new_name)
         - append_to_file (args: path, content)
+        - search_youtube (args: query)
+        - search_github (args: query) 
 
         Available tools (For You With Args):
         - search_web (args: query of what you want to search): If you cant awnser to something you can search it using this tool in the web
 
+        Most user messages do NOT require tools.
 
-        If a tool is needed answer ONLY in JSON:
+        Use a tool ONLY when the user explicitly asks for an action.
 
-        {
-            "tool": "tool_name"
-        }
+        IMPORTANT:
 
-        If a tool needs extra arguments answer ONLY in JSON:
+        Greetings, conversations, explanations,
+        questions, opinions, coding help,
+        general knowledge and brainstorming
+        NEVER require tools.
 
-        {
-            "tool": "tool_name",
-            "args": {
-                "arg_name":"arg"
-            }
-        }
+        Examples:
 
-        When the execution of the tool has finished you will get the results wich you must tell it in the user
+        User: Hello
+        Assistant: Hello! How can I help?
 
-        Else response normally.
-        Dont forget to be as concise as you can.
+        User: How are you?
+        Assistant: I'm doing well.
+
+        User: Write Python code for a calculator
+        Assistant: (write code normally)
+
+        User: Open Notepad
+        Assistant:
+        {"tool":"open_notepad"}
+
+        User: Show CPU usage
+        Assistant:
+        {"tool":"get_cpu"}
+
+        CRITICAL CONSTRAINTS:
+        - You must always output raw JSON only when a tool is needed.
+        - Ensure all braces are balanced.
+        - Never wrap JSON in ```json blocks or any markdown formatting.
+        - If you have the information in your context, do not call search_web.
         """
         self.history = [
 
@@ -630,7 +687,7 @@ class AI:
             messages=messages,
             options={
                 "temperature": 0.2,
-                "num_ctx": 1024
+                "num_ctx": 4096
             }
         )
 
@@ -672,6 +729,15 @@ def ai_endpoint():
     print("🤖 RAW MODEL RESPONSE:", response)
 
     try:
+        response = response.strip()
+
+        open_braces = response.count("{")
+        close_braces = response.count("}")
+
+        if open_braces > close_braces:
+            response += "}" * (open_braces - close_braces)
+
+        data = json.loads(response)
         data = json.loads(response)
         print("🧠 PARSED JSON:", data)
 
