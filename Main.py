@@ -9,7 +9,7 @@ import time
 import os
 import subprocess
 import datetime
-import requests
+import shutil
 from urllib.parse import quote
 from ddgs import DDGS
 
@@ -37,7 +37,15 @@ class Tools:
             "shutdown_pc":self.shutdown_pc,
             "restart_pc":self.restart_pc,
             "log_out":self.log_out,
-            "search_web":self.search_web
+            "search_web":self.search_web,
+            "create_file":self.create_file,
+            "delete_file":self.delete_file,
+            "move_file":self.move_file,
+            "copy_file":self.copy_file,
+            "read_file":self.read_file,
+            "write_file":self.write_file,
+            "rename_file":self.rename_file,
+            "append_to_file":self.append_to_file
         }
     
     def open_chrome(self):
@@ -306,7 +314,115 @@ class Tools:
             "status": 404,
             "response": f"This path dont exist please select a valid one."
         }
-      
+    
+    def create_file(self,path,content):
+       try:
+        with open(path,"w") as f:
+            f.write(content)
+        return {
+            "status": 200,
+            "response": f"The file has created succesfull"
+        }
+       except Exception as error:
+           return {
+               "status":404,
+               "response": f"Failed to create file beacuse of an error:{error}"
+           }
+           
+    def delete_file(self,path):
+       try:
+        os.remove(path)
+        return {
+            "status":200,
+            "response":f"The file {path} has deleted succesfull"
+        }
+       except Exception as error:
+           return {
+               "status":404,
+               "response": f"Failed to delete file beacuse of an error:{error}"
+           }
+
+    def move_file(self,source,destination):
+       try: 
+        shutil.move(source,destination)
+        return {
+            "status":200,
+            "response":f"The file has moved from {source} to {destination}"
+        }
+       except Exception as error:
+            return {
+               "status":404,
+               "response": f"Failed to move file beacuse of an error:{error}"
+           }
+    
+    def copy_file(self, source, destination):
+        try:
+            shutil.copy(source,destination)
+            return {
+                "status":200,
+                "response":f"The file has copied from {source} to {destination}"
+            }
+        except Exception as error:
+            return {
+               "status":404,
+               "response": f"Failed to copy file beacuse of an error:{error}"
+            }
+
+    def read_file(self,path):
+       try: 
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+        return {
+                "status":200,
+                "response":f"The file {path} contains: {content}"
+            }
+       except Exception as error:
+            return {
+               "status":404,
+               "response": f"Failed to read file beacuse of an error:{error}"
+            }
+
+    def write_file(self,path, content):
+       try: 
+        with open(path,'w') as f:
+            f.write(content)
+        return {
+                "status":200,
+                "response":f"The {content} has successfully write into {path}"
+            }
+       except Exception as error:
+            return {
+               "status":404,
+               "response": f"Failed to write into file beacuse of an error:{error}"
+            }
+       
+    def append_to_file(self, path, content):
+       try: 
+        with open(path,'a') as f:
+            f.write(content)
+        return {
+                "status":200,
+                "response":f"The {content} has successfully append into {path}"
+            }
+       except Exception as error:
+            return {
+               "status":404,
+               "response": f"Failed to append into file beacuse of an error:{error}"
+            }
+    
+    def rename_file(self,old_name, new_name):
+       try:
+          os.rename(old_name,new_name)
+          return {
+                "status":200,
+                "response":f"The file has successfully renamed to {new_name}"
+            }
+       except Exception as error:
+           return {
+               "status":404,
+               "response": f"Failed to rename file beacuse of an error:{error}"
+            }
+
     def search_web(self, query=None):
         try:
             with DDGS() as ddgs:
@@ -368,6 +484,14 @@ class AI:
         Available tools (With Args):
         - open_url (args: url)
         - list_files (args: path)
+        - create_file (args: path, content)
+        - delete_file (args: path)
+        - move_file (args: source, destination)
+        - copy_file (args: source, destination)
+        - read_file (args: path)
+        - write_file (args: path, content)
+        - rename_file (args: old_name, new_name)
+        - append_to_file (args: path, content)
 
         Available tools (For You With Args):
         - search_web (args: query of what you want to search): If you cant awnser to something you can search it using this tool in the web
