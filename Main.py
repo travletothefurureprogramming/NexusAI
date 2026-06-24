@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify
 from ollama import chat
-from ollama import ChatResponse
 from PIL import ImageGrab
 import webbrowser
 import json
@@ -17,6 +16,40 @@ import winapps
 
 server = Flask(__name__)
 
+
+class Memory:
+    def __init__(self,file):
+
+        self.file = file
+
+        if not os.path.exists(file):
+            with open(self.file, "w", encoding="utf-8") as f:
+                json.dump({}, f)
+        
+    def load(self):
+        with open(self.file, "r", encoding="utf-8") as f:
+            return json.load(f)
+        
+    def save(self,data):
+        with open(self.file, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+
+    def set(self,key,value):
+        data = self.load()
+        data[key] = value
+        self.save(data)
+
+    def get(self, key, default=None):
+        data = self.load()
+        return data.get(key, default)
+    
+    def delete(self, key):
+        data = self.load()
+        if key in data:
+            del data[key]
+            self.save(data)
+
+memory = Memory("memory.json")
 
 class Tools:
     def __init__(self):
@@ -52,7 +85,10 @@ class Tools:
             "read_file":self.read_file,
             "write_file":self.write_file,
             "rename_file":self.rename_file,
-            "append_to_file":self.append_to_file
+            "append_to_file":self.append_to_file,
+            "remember":self.remember,
+            "recall":self.recall,
+            "forget":self.forget
         }
     
     def open_chrome(self):
@@ -540,6 +576,51 @@ class Tools:
                     "status": 404,
                     "response": f"Error while searching on Github:{error}"
                 }
+        
+    def remember(self,key,value):
+       try:
+        memory.set(key,value)
+        model.add_tool_result(
+        f"Memory updated: {key}={value}"
+        )   
+        return {
+                "status":200,
+                "response":f"I will remember that"
+        }
+       except Exception as error:
+            return {
+                    "status": 404,
+                    "response": f"Error while try to remember:{error}"
+            }
+       
+    def recall(self, key):
+      try:  
+        value = memory.get(key)
+
+        return {
+            "status": 200,
+            "response": str(value)
+        }
+      except Exception as error:
+          return {
+            "status": 404,
+            "response": f"An error has occured when I try to recall that. Error:{error}"
+          }
+    
+    def forget(self, key):
+      try:
+        memory.delete(key)
+
+        return {
+            "status": 200,
+            "response": f"Forgot {key}"
+        }
+      except Exception as error:
+          return {
+            "status": 404,
+            "response": f"An error has occured when I try to forget that. Error:{error}"
+          }
+
     
     def execute(self,tool,args=None):
         if tool not in self.tools:
@@ -608,6 +689,9 @@ class AI:
         - append_to_file (args: path, content)
         - search_youtube (args: query)
         - search_github (args: query) 
+        - remember (args: key, value)
+        - recall (args: key)
+        - forget (args: key)
 
         Available tools (For You With Args):
         - search_web (args: query of what you want to search): If you cant awnser to something you can search it using this tool in the web
@@ -615,6 +699,49 @@ class AI:
         Most user messages do NOT require tools.
 
         Use a tool ONLY when the user explicitly asks for an action.
+
+        ABSOLUTE RULE:
+
+        If a tool is needed:
+        Output ONLY valid JSON.
+
+        DO NOT explain.
+        DO NOT describe the action.
+        DO NOT say "I will use".
+        DO NOT use markdown.
+        DO NOT use code blocks.
+
+        Any text outside JSON is forbidden.
+
+        When the user asks to modify, create, append,
+        rewrite or save a file:
+
+        ALWAYS use:
+        - create_file
+        - write_file
+        - append_to_file
+
+        NEVER write the code directly.
+
+        A file operation is ALWAYS an action.
+
+        Examples:
+
+        Create a file
+        Write code into a file
+        Append code to a file
+        Modify a file
+        Delete a file
+        Rename a file
+
+        For these requests you MUST call the appropriate tool immediately.
+
+        Never ask for confirmation if the user already specified:
+        - file name
+        - path
+        - content
+
+        Execute the action directly.
 
         IMPORTANT:
 
@@ -641,6 +768,32 @@ class AI:
         User: Show CPU usage
         Assistant:
         {"tool":"get_cpu"}
+
+        User:
+        Create test.py and write a hello world program
+
+        Assistant:  
+        {
+        "tool":"write_file",
+        "args":{
+        "path":"test.py",
+        "content":"print('Hello World')"
+        }
+        }
+
+        Memory Examples:
+
+        User: Remember my name is Gregory
+        Assistant:
+        {"tool":"remember","args":{"key":"name","value":"Gregory"}}
+
+        User: What is my name?
+        Assistant:
+        {"tool":"recall","args":{"key":"name"}}
+
+        User: Forget my name
+        Assistant:
+        {"tool":"forget","args":{"key":"name"}}
 
         CRITICAL CONSTRAINTS:
         - You must always output raw JSON only when a tool is needed.
@@ -672,18 +825,23 @@ class AI:
 
         if len(self.history) > self.MAX_HISTORY:
             self.history = self.history[-self.MAX_HISTORY:]
+        
+        saved_memory = memory.load()
 
         messages = [
         {
             "role": "system",
-            "content": self.system_prompt
+            "content":
+            self.system_prompt +
+            "\n\nCurrent Memory:\n" +
+            json.dumps(saved_memory, ensure_ascii=False, indent=2)
         }
         ]
 
         messages.extend(self.history)
 
         response = chat(
-            model="qwen2.5:3b-instruct",
+            model="qwen3:4b",
             messages=messages,
             options={
                 "temperature": 0.2,
@@ -737,7 +895,6 @@ def ai_endpoint():
         if open_braces > close_braces:
             response += "}" * (open_braces - close_braces)
 
-        data = json.loads(response)
         data = json.loads(response)
         print("🧠 PARSED JSON:", data)
 
