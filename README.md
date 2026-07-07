@@ -63,6 +63,7 @@ Creator: [@Greg_ios](https://stardance.hackclub.com/@Greg_ios) — Hack Club Sta
 | 10 | Memory class + memory tool integration, upgraded to Qwen3:4B |
 | 10 | Added Memory class (foundation for future tools) |
 | 9 | Improved system prompt for more stable responses |
+| 1 | Add Main executable file to the binary directory |
 
 ---
 
