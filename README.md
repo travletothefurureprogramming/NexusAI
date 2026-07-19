@@ -1,80 +1,85 @@
 # NexusAI
 
-**A local desktop AI assistant for Windows with direct system control capabilities.**
+**A local AI assistant for Windows with built-in system control capabilities.**
 
-NexusAI isn't limited to answering questions — it can interact with the operating system through a growing collection of built-in tools.
-
-Creator: [@Greg_ios](https://stardance.hackclub.com/@Greg_ios) — Hack Club Stardance Challenge
+NexusAI is a desktop AI assistant designed to run locally while interacting directly with the Windows operating system. Besides answering questions, it can manage files, monitor system resources, launch applications, and perform everyday tasks through an expanding collection of built-in tools.
 
 ---
 
-## 🚀 Features
+# Features
 
-### 🧠 AI & Memory
-- Backend AI logic powered by **Qwen3:4B** and **qwen2.5:3b-instruct** (faster model)
-- Memory system (`Memory` class) to retain context across sessions
-- Chat history management so the model remembers previous messages
-- Refined system prompt for more stable and relevant responses
+## AI & Memory
 
-### 🛠️ System Tools
-- **Process management**
-- **File management**
-- Launching system applications: Calculator, Notepad, File Explorer, Task Manager, Command Prompt
-- Opening Chrome
-- Opening URLs
-- Taking screenshots
-- Shutdown, restart, log out
-
-### 📊 System Monitoring
-- `get_cpu` — CPU usage percentage
-- `get_ram` — RAM usage percentage
-- `get_disk_io_counters` — read/write per second
-- `get_disk_usage` — disk usage
-- `get_network_usage` — sent/received per second
-
-### 🌐 Search & Web
-- **YouTube** search
-- **GitHub** search
-- General **web** search
-- Basic web interface
-
-### 🖥️ UI & Backend
-- Modern, clean UI
-- Backend endpoints via **Flask**
-- Structured AI logic on the backend
+- Powered by **Qwen3:4B**
+- Optional faster model: **qwen2.5:3b-instruct**
+- Persistent memory system for remembering important information
+- Conversation history management for better context awareness
+- Carefully designed system prompt for more reliable responses
 
 ---
 
-## 📅 Development History (Devlog Highlights)
+## System Tools
 
-| Days ago | Feature |
-|---|---|
-| 14 | Created Flask endpoints & structured the AI logic |
-| 14 | Added AI to the backend |
-| 13 | Added more system-monitoring tools (CPU, RAM, disk, network) |
-| 13 | Added support for tools with arguments — URL opening, screenshots |
-| 13 | Added ability to open system applications |
-| 13 | Shutdown/restart/log out + model history management |
-| 12 | Web search + faster model (qwen2.5:3b-instruct) + basic web interface |
-| 12 | Modern, clean UI |
-| 11 | File management tools |
-| 11 | Process management tools |
-| 11 | YouTube & GitHub search + updated AI operating rules |
-| 10 | Memory class + memory tool integration, upgraded to Qwen3:4B |
-| 10 | Added Memory class (foundation for future tools) |
-| 9 | Improved system prompt for more stable responses |
-| 1 | Add Main executable file to the binary directory |
+NexusAI can interact directly with Windows through a variety of built-in tools.
+
+### Process Management
+- View running processes
+- Manage system processes
+
+### File Management
+- File operations and directory management
+
+### Application Launcher
+Launch common Windows applications, including:
+
+- Calculator
+- Notepad
+- File Explorer
+- Task Manager
+- Command Prompt
+- Google Chrome
+
+Additional actions:
+
+- Open websites and URLs
+- Capture screenshots
+- Shut down the computer
+- Restart Windows
+- Log out of the current session
 
 ---
 
-## 📌 Notes
+## System Monitoring
 
-This README was generated based on the project's devlogs on the Hack Club Stardance Challenge. As the project evolves, consider updating it with:
-- Installation instructions (dependencies, Python version, Ollama/models)
-- Run instructions (backend + UI)
-- Usage examples for commands sent to NexusAI
-- License
+Monitor your computer in real time.
+
+Available metrics include:
+
+- CPU usage
+- RAM usage
+- Disk usage
+- Disk read/write activity
+- Network upload/download activity
 
 ---
 
-*Made with ❤️ for the Hack Club Stardance Challenge*
+## Search
+
+Built-in search tools include:
+
+- Web search
+- YouTube search
+- GitHub search
+
+A lightweight web interface is also included.
+
+---
+
+## Architecture
+
+- Flask backend
+- Modular tool system
+- Local AI inference
+- Modern desktop interface
+
+---
